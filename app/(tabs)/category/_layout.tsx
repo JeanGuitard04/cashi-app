@@ -20,7 +20,7 @@ export default function CategoryLayout() {
       <Stack.Screen
         name="[id]"
         options={{
-          title: "Nueva categoría",
+          title: "Categoría",
         }}
       />
     </Stack>

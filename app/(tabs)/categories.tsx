@@ -67,9 +67,19 @@ export default function CategoriesListScreen() {
         data={categories}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={styles.card}>
+          <TouchableOpacity
+            style={styles.card}
+            onPress={() =>
+              router.push({
+                pathname: "/(tabs)/category/[id]",
+                params: { id: item.id },
+              })
+            }
+            activeOpacity={0.7}
+          >
             <Text style={styles.cardTitle}>{item.name}</Text>
-          </View>
+            <Text style={styles.cardHint}>Tocar para editar</Text>
+          </TouchableOpacity>
         )}
         ListEmptyComponent={
           <View style={styles.centered}>
@@ -117,7 +127,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  cardTitle: { fontSize: 16, fontWeight: "600", color: colors.text },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: colors.text,
+    marginBottom: 4,
+  },
+  cardHint: { fontSize: 12, color: colors.muted },
   errorText: { fontSize: 16, color: colors.danger, marginBottom: 12 },
   retryText: { fontSize: 16, color: colors.tint, fontWeight: "600" },
   emptyText: { fontSize: 18, color: colors.muted, marginBottom: 4 },
