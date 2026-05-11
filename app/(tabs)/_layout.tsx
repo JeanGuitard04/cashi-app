@@ -38,6 +38,12 @@ export default function TabLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="transaction"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

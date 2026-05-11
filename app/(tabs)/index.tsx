@@ -1,4 +1,5 @@
 import { useFocusEffect } from "@react-navigation/native";
+import { router } from "expo-router";
 import { useCallback, useMemo } from "react";
 import {
   ActivityIndicator,
@@ -64,6 +65,17 @@ export default function TransactionsListScreen() {
     <SafeAreaView style={styles.screen} edges={["top"]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Transacciones</Text>
+        <TouchableOpacity
+          onPress={() =>
+            router.push({
+              pathname: "/(tabs)/transaction/[id]",
+              params: { id: "new" },
+            })
+          }
+          hitSlop={12}
+        >
+          <Text style={styles.addButton}>+</Text>
+        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -123,10 +135,19 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
   headerTitle: { fontSize: 28, fontWeight: "bold", color: colors.text },
+  addButton: {
+    fontSize: 28,
+    color: colors.tint,
+    fontWeight: "bold",
+    paddingHorizontal: 8,
+  },
   list: { paddingHorizontal: 16, paddingTop: 0 },
   emptyList: { flexGrow: 1 },
   card: {
