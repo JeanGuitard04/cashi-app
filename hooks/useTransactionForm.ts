@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback, useState } from "react";
 
 import {
   createTransactionSchema,
@@ -43,14 +44,20 @@ export const useTransactionForm = ({
   const [errores, setErrores] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (defaultValues) {
-      setAmount(defaultValues.amount);
-      setType(defaultValues.type);
-      setDescription(defaultValues.description);
-      setCategoryId(defaultValues.categoryId);
-    }
-  }, [defaultValues]);
+  // Sincroniza el form con los defaultValues (o vacíos) cada vez que la
+  // pantalla recibe foco. Mismo motivo que en useCategoryForm:
+  // native-stack puede reusar la instancia del componente al re-pushear,
+  // dejando state stale. Reseteamos también `errores` para que no
+  // queden mensajes rojos viejos.
+  useFocusEffect(
+    useCallback(() => {
+      setAmount(defaultValues?.amount ?? "");
+      setType(defaultValues?.type ?? "expense");
+      setDescription(defaultValues?.description ?? "");
+      setCategoryId(defaultValues?.categoryId ?? "");
+      setErrores({});
+    }, [defaultValues])
+  );
 
   const handleSubmit = async () => {
     const schema =

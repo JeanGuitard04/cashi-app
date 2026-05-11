@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback, useState } from "react";
 
 import {
   createCategorySchema,
@@ -20,11 +21,20 @@ export const useCategoryForm = ({ mode, defaultValues, onSubmit }: Props) => {
   const [errores, setErrores] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (defaultValues) {
-      setName(defaultValues.name);
-    }
-  }, [defaultValues]);
+  // Sincroniza el form con los defaultValues (o vacío) cada vez que la
+  // pantalla recibe foco. Resuelve dos cosas:
+  //   1. Native-stack a veces reusa la instancia del componente al
+  //      re-pushear la misma ruta — sin este reset, el form arranca con
+  //      lo último que tipeaste (modo create) o con otra categoría
+  //      (modo edit).
+  //   2. En modo edit, defaultValues llega async cuando AsyncStorage
+  //      termina de cargar — al recibir foco sincronizamos.
+  useFocusEffect(
+    useCallback(() => {
+      setName(defaultValues?.name ?? "");
+      setErrores({});
+    }, [defaultValues])
+  );
 
   const handleSubmit = async () => {
     const schema =
