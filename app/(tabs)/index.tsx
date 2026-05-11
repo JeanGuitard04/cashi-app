@@ -91,7 +91,16 @@ export default function TransactionsListScreen() {
             categoryNameById.get(item.categoryId) ?? "Sin categoría";
 
           return (
-            <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() =>
+                router.push({
+                  pathname: "/(tabs)/transaction/[id]",
+                  params: { id: item.id },
+                })
+              }
+              activeOpacity={0.7}
+            >
               <View style={styles.cardTopRow}>
                 <Text style={styles.description} numberOfLines={1}>
                   {item.description}
@@ -107,7 +116,7 @@ export default function TransactionsListScreen() {
                   {new Date(item.date).toLocaleDateString("es-CL")}
                 </Text>
               </View>
-            </View>
+            </TouchableOpacity>
           );
         }}
         ListEmptyComponent={

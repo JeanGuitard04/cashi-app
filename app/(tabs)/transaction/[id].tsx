@@ -1,5 +1,8 @@
-import { router, useLocalSearchParams } from "expo-router";
+import { Stack, router, useLocalSearchParams } from "expo-router";
+import { useMemo } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -12,39 +15,75 @@ import {
 
 import { colors } from "@/constants/theme";
 import { useCategories } from "@/hooks/useCategories";
-import {
-  useTransactionForm,
-} from "@/hooks/useTransactionForm";
+import { useTransactionForm } from "@/hooks/useTransactionForm";
 import { useTransactions } from "@/hooks/useTransactions";
 
 export default function TransactionFormScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const isCreate = id === "new";
+  const mode = isCreate ? "create" : "edit";
 
   const { categories } = useCategories();
-  const { crear } = useTransactions();
+  const {
+    transactions,
+    loading: loadingTx,
+    crear,
+    editar,
+    eliminar,
+  } = useTransactions();
+
+  const transaccion = isCreate
+    ? undefined
+    : transactions.find((t) => t.id === id);
+
+  const defaultValues = useMemo(() => {
+    return transaccion
+      ? {
+          amount: transaccion.amount.toString(),
+          type: transaccion.type,
+          description: transaccion.description,
+          categoryId: transaccion.categoryId,
+        }
+      : undefined;
+  }, [transaccion]);
 
   const form = useTransactionForm({
-    mode: "create",
+    mode,
+    defaultValues,
     onSubmit: async (data) => {
-      await crear(data as {
-        amount: number;
-        type: "income" | "expense";
-        description: string;
-        categoryId: string;
-      });
+      if (isCreate) {
+        await crear(
+          data as {
+            amount: number;
+            type: "income" | "expense";
+            description: string;
+            categoryId: string;
+          }
+        );
+      } else {
+        await editar(id!, data);
+      }
       router.replace("/(tabs)");
     },
   });
 
-  if (!isCreate) {
+  if (!isCreate && loadingTx) {
     return (
       <View style={styles.screen}>
+        <Stack.Screen options={{ title: "Editar transacción" }} />
         <View style={styles.centered}>
-          <Text style={styles.placeholderTitle}>Edición no disponible</Text>
-          <Text style={styles.placeholderText}>
-            La edición de transacciones esta en construcción.
-          </Text>
+          <ActivityIndicator size="large" color={colors.tint} />
+        </View>
+      </View>
+    );
+  }
+
+  if (!isCreate && !transaccion) {
+    return (
+      <View style={styles.screen}>
+        <Stack.Screen options={{ title: "Editar transacción" }} />
+        <View style={styles.centered}>
+          <Text style={styles.errorText}>Transacción no encontrada</Text>
           <TouchableOpacity onPress={() => router.replace("/(tabs)")}>
             <Text style={styles.backLink}>Volver al listado</Text>
           </TouchableOpacity>
@@ -53,9 +92,10 @@ export default function TransactionFormScreen() {
     );
   }
 
-  if (categories.length === 0) {
+  if (isCreate && categories.length === 0) {
     return (
       <View style={styles.screen}>
+        <Stack.Screen options={{ title: "Nueva transacción" }} />
         <View style={styles.centered}>
           <Text style={styles.placeholderTitle}>
             Necesitas una categoría primero
@@ -74,8 +114,37 @@ export default function TransactionFormScreen() {
     );
   }
 
+  const handleEliminar = () => {
+    if (!transaccion) return;
+    const ejecutar = async () => {
+      await eliminar(id!);
+      router.replace("/(tabs)");
+    };
+
+    if (Platform.OS === "web") {
+      if (window.confirm(`¿Eliminar "${transaccion.description}"?`)) {
+        void ejecutar();
+      }
+      return;
+    }
+
+    Alert.alert(
+      "Eliminar transacción",
+      `¿Seguro que querés eliminar "${transaccion.description}"?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Eliminar", style: "destructive", onPress: ejecutar },
+      ]
+    );
+  };
+
   return (
     <View style={styles.screen}>
+      <Stack.Screen
+        options={{
+          title: isCreate ? "Nueva transacción" : "Editar transacción",
+        }}
+      />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -84,7 +153,9 @@ export default function TransactionFormScreen() {
           contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.title}>Nueva transacción</Text>
+          <Text style={styles.title}>
+            {isCreate ? "Nueva transacción" : "Editar transacción"}
+          </Text>
 
           {/* Type toggle */}
           <Text style={styles.label}>Tipo</Text>
@@ -164,35 +235,38 @@ export default function TransactionFormScreen() {
 
           {/* Category selector */}
           <Text style={styles.label}>Categoría</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.chipsRow}
-          >
-            {categories.map((cat) => {
-              const isSelected = form.categoryId === cat.id;
-              return (
-                <TouchableOpacity
-                  key={cat.id}
-                  style={[
-                    styles.chip,
-                    isSelected && styles.chipSelected,
-                  ]}
-                  onPress={() => form.setCategoryId(cat.id)}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      isSelected && styles.chipTextSelected,
-                    ]}
+          {categories.length === 0 ? (
+            <Text style={styles.emptyChipsText}>
+              No hay categorías disponibles
+            </Text>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.chipsRow}
+            >
+              {categories.map((cat) => {
+                const isSelected = form.categoryId === cat.id;
+                return (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={[styles.chip, isSelected && styles.chipSelected]}
+                    onPress={() => form.setCategoryId(cat.id)}
+                    activeOpacity={0.7}
                   >
-                    {cat.name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+                    <Text
+                      style={[
+                        styles.chipText,
+                        isSelected && styles.chipTextSelected,
+                      ]}
+                    >
+                      {cat.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
           {form.errores.categoryId ? (
             <Text style={styles.errorLabel}>{form.errores.categoryId}</Text>
           ) : null}
@@ -208,6 +282,16 @@ export default function TransactionFormScreen() {
               {form.submitting ? "Guardando..." : "Guardar"}
             </Text>
           </TouchableOpacity>
+
+          {!isCreate ? (
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={handleEliminar}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.deleteButtonText}>Eliminar</Text>
+            </TouchableOpacity>
+          ) : null}
 
           <TouchableOpacity
             style={styles.cancelButton}
@@ -286,6 +370,12 @@ const styles = StyleSheet.create({
   },
   chipText: { fontSize: 14, color: colors.text },
   chipTextSelected: { color: "#fff", fontWeight: "600" },
+  emptyChipsText: {
+    fontSize: 13,
+    color: colors.muted,
+    fontStyle: "italic",
+    paddingVertical: 8,
+  },
   submitButton: {
     backgroundColor: colors.tint,
     borderRadius: 8,
@@ -294,6 +384,14 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   submitButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  deleteButton: {
+    backgroundColor: colors.danger,
+    borderRadius: 8,
+    padding: 14,
+    alignItems: "center",
+    marginTop: 12,
+  },
+  deleteButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
   cancelButton: {
     borderRadius: 8,
     padding: 14,
@@ -315,4 +413,5 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   backLink: { fontSize: 16, color: colors.tint, fontWeight: "600" },
+  errorText: { fontSize: 18, color: colors.danger, marginBottom: 12 },
 });
