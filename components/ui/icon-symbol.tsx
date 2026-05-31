@@ -21,6 +21,7 @@ const MAPPING = {
   'list.bullet': 'list',
   'chart.bar.fill': 'bar-chart',
   'folder.fill': 'folder',
+  'mappin': 'place',
 } as IconMapping;
 
 /**
