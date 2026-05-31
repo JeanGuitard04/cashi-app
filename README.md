@@ -3,11 +3,14 @@
 App de finanzas personales construida con **React Native + Expo +
 TypeScript + Expo Router + AsyncStorage + Zod**. Permite registrar
 transacciones (ingresos y egresos), organizarlas por categorías y
-ver el balance en una pantalla dedicada. Toda la persistencia es
-local en el dispositivo — los datos sobreviven al cierre de la app.
+ver el balance en una pantalla dedicada. Cada transacción puede
+adjuntar opcionalmente una **foto** (cámara o galería) y la
+**ubicación GPS** del momento en que se creó. Toda la persistencia
+es local — los datos sobreviven al cierre de la app.
 
-Proyecto entregado para la **Evaluación 2 — Desarrollo de
-Aplicaciones Móviles** (Cashi: App Mobile de Finanzas Personales).
+Proyecto entregado para **Evaluación 2** (CRUD + balance) y
+**Evaluación 3** (cámara + GPS) — Desarrollo de Aplicaciones
+Móviles.
 
 ---
 
@@ -21,6 +24,8 @@ Aplicaciones Móviles** (Cashi: App Mobile de Finanzas Personales).
 | `typescript` | ~5.9 | Tipado estático |
 | `@react-native-async-storage/async-storage` | 2.2 | Persistencia clave-valor |
 | `zod` | 4.4 | Validación de formularios |
+| `expo-image-picker` | ~17.0 | Cámara y galería de fotos |
+| `expo-location` | ~19.0 | GPS (foreground) |
 
 ---
 
@@ -106,6 +111,8 @@ cashi-app/
     useCategories.ts         ← CRUD de categorías
     useCategoryForm.ts       ← Form de categoría
     useBalance.ts            ← Cálculo de totales (compone useTransactions)
+    useImagePicker.ts        ← Cámara + galería (Fase 3)
+    useLocation.ts           ← GPS foreground (Fase 3)
   schemas/                   ← Validación Zod
     transaction.schema.ts
     category.schema.ts
