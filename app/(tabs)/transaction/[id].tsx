@@ -1,8 +1,10 @@
+import { useFocusEffect } from "@react-navigation/native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -15,6 +17,8 @@ import {
 
 import { colors } from "@/constants/theme";
 import { useCategories } from "@/hooks/useCategories";
+import { useImagePicker } from "@/hooks/useImagePicker";
+import { useLocation } from "@/hooks/useLocation";
 import { useTransactionForm } from "@/hooks/useTransactionForm";
 import { useTransactions } from "@/hooks/useTransactions";
 
@@ -47,21 +51,38 @@ export default function TransactionFormScreen() {
       : undefined;
   }, [transaccion]);
 
+  const imagePicker = useImagePicker();
+  const locationHook = useLocation();
+
+  useFocusEffect(
+    useCallback(() => {
+      imagePicker.setImage(transaccion?.photoUri ?? null);
+      locationHook.setLocation(transaccion?.location ?? null);
+    }, [transaccion, imagePicker.setImage, locationHook.setLocation])
+  );
+
   const form = useTransactionForm({
     mode,
     defaultValues,
     onSubmit: async (data) => {
+      const enriched = {
+        ...data,
+        photoUri: imagePicker.imageUri ?? undefined,
+        location: locationHook.location ?? undefined,
+      };
       if (isCreate) {
         await crear(
-          data as {
+          enriched as {
             amount: number;
             type: "income" | "expense";
             description: string;
             categoryId: string;
+            photoUri?: string;
+            location?: { latitude: number; longitude: number };
           }
         );
       } else {
-        await editar(id!, data);
+        await editar(id!, enriched);
       }
       router.replace("/(tabs)");
     },
@@ -271,6 +292,82 @@ export default function TransactionFormScreen() {
             <Text style={styles.errorLabel}>{form.errores.categoryId}</Text>
           ) : null}
 
+          {/* Foto (opcional) */}
+          <Text style={styles.label}>Foto (opcional)</Text>
+          {imagePicker.imageUri ? (
+            <View style={styles.photoContainer}>
+              <Image
+                source={{ uri: imagePicker.imageUri }}
+                style={styles.photoPreview}
+              />
+              <TouchableOpacity
+                onPress={imagePicker.clearImage}
+                hitSlop={8}
+              >
+                <Text style={styles.removeText}>Quitar foto</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.deviceButtonRow}>
+              <TouchableOpacity
+                style={styles.deviceButton}
+                onPress={imagePicker.takePhoto}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.deviceButtonText}>Tomar foto</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.deviceButton}
+                onPress={imagePicker.pickFromGallery}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.deviceButtonText}>Galería</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {imagePicker.error ? (
+            <Text style={styles.errorLabel}>{imagePicker.error}</Text>
+          ) : null}
+
+          {/* Ubicación (opcional) */}
+          <Text style={styles.label}>Ubicación (opcional)</Text>
+          {locationHook.location ? (
+            <View style={styles.locationContainer}>
+              <Text style={styles.locationText}>
+                Lat: {locationHook.location.latitude.toFixed(5)}
+                {"  "}·{"  "}
+                Lng: {locationHook.location.longitude.toFixed(5)}
+              </Text>
+              <TouchableOpacity
+                onPress={locationHook.clearLocation}
+                hitSlop={8}
+              >
+                <Text style={styles.removeText}>Quitar</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={[
+                styles.deviceButton,
+                locationHook.loading && styles.deviceButtonDisabled,
+              ]}
+              onPress={locationHook.getCurrentLocation}
+              disabled={locationHook.loading}
+              activeOpacity={0.7}
+            >
+              {locationHook.loading ? (
+                <ActivityIndicator color={colors.tint} />
+              ) : (
+                <Text style={styles.deviceButtonText}>
+                  Obtener ubicación actual
+                </Text>
+              )}
+            </TouchableOpacity>
+          )}
+          {locationHook.error ? (
+            <Text style={styles.errorLabel}>{locationHook.error}</Text>
+          ) : null}
+
           {/* Submit */}
           <TouchableOpacity
             style={styles.submitButton}
@@ -375,6 +472,45 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontStyle: "italic",
     paddingVertical: 8,
+  },
+  photoContainer: { gap: 8, marginBottom: 4 },
+  photoPreview: {
+    width: "100%",
+    height: 200,
+    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  deviceButtonRow: { flexDirection: "row", gap: 8, marginBottom: 4 },
+  deviceButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  deviceButtonDisabled: { opacity: 0.6 },
+  deviceButtonText: { fontSize: 14, fontWeight: "600", color: colors.text },
+  locationContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  locationText: { fontSize: 13, color: colors.text, flex: 1 },
+  removeText: {
+    fontSize: 13,
+    color: colors.danger,
+    fontWeight: "600",
   },
   submitButton: {
     backgroundColor: colors.tint,
