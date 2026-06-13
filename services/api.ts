@@ -1,6 +1,6 @@
 const API_BASE_URL = "http://cashi-api.antakarana.ai";
 
-type JsonBody = Record<string, unknown> | unknown[];
+type JsonBody = object;
 
 interface RequestOptions {
   method: "GET" | "POST" | "PATCH" | "DELETE";

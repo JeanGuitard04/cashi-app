@@ -1,62 +1,109 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useEffect, useState } from "react";
 
+import { useAuth } from "@/hooks/useAuth";
+import { apiService } from "@/services/api";
 import type {
   CreateTransactionInput,
   Transaction,
   UpdateTransactionInput,
 } from "@/types/transaction";
 
-const STORAGE_KEY = "transactions";
+interface UploadResponse {
+  imageUrl: string;
+}
+
+const uploadPhoto = async (
+  photoUri: string,
+  token: string
+): Promise<string> => {
+  const formData = new FormData();
+  formData.append("file", {
+    uri: photoUri,
+    name: "photo.jpg",
+    type: "image/jpeg",
+  } as unknown as Blob);
+
+  const res = await apiService.post<UploadResponse>(
+    "/transactions/upload",
+    formData,
+    token
+  );
+  return res.imageUrl;
+};
+
+const resolvePhoto = async (
+  photoUri: string | undefined,
+  token: string
+): Promise<string | undefined> => {
+  if (!photoUri) return undefined;
+  if (photoUri.startsWith("http")) return photoUri;
+  return uploadPhoto(photoUri, token);
+};
 
 export const useTransactions = () => {
+  const { token } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const cargar = useCallback(async () => {
+    if (!token) {
+      setTransactions([]);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
-      const raw = await AsyncStorage.getItem(STORAGE_KEY);
-      const data: Transaction[] = raw ? JSON.parse(raw) : [];
+      setError(null);
+      const data = await apiService.get<Transaction[]>(
+        "/transactions",
+        token
+      );
       setTransactions(data);
-    } catch {
-      setError("No se pudieron cargar las transacciones");
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Error al cargar transacciones"
+      );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     cargar();
   }, [cargar]);
 
-  const persistir = async (next: Transaction[]) => {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    setTransactions(next);
-  };
-
   const crear = async (input: CreateTransactionInput): Promise<void> => {
-    const nueva: Transaction = {
-      id: Date.now(),
-      date: new Date().toISOString(),
-      ...input,
-    };
-    await persistir([...transactions, nueva]);
+    if (!token) throw new Error("Sin sesión activa");
+    const photoUri = await resolvePhoto(input.photoUri, token);
+    const body = { ...input, photoUri };
+    const created = await apiService.post<Transaction>(
+      "/transactions",
+      body,
+      token
+    );
+    setTransactions((prev) => [...prev, created]);
   };
 
   const editar = async (
     id: number,
     input: UpdateTransactionInput
   ): Promise<void> => {
-    const next = transactions.map((t) =>
-      t.id === id ? { ...t, ...input } : t
+    if (!token) throw new Error("Sin sesión activa");
+    const photoUri = await resolvePhoto(input.photoUri, token);
+    const body = { ...input, photoUri };
+    const updated = await apiService.patch<Transaction>(
+      `/transactions/${id}`,
+      body,
+      token
     );
-    await persistir(next);
+    setTransactions((prev) => prev.map((t) => (t.id === id ? updated : t)));
   };
 
   const eliminar = async (id: number): Promise<void> => {
-    await persistir(transactions.filter((t) => t.id !== id));
+    if (!token) throw new Error("Sin sesión activa");
+    await apiService.delete(`/transactions/${id}`, token);
+    setTransactions((prev) => prev.filter((t) => t.id !== id));
   };
 
   return {
