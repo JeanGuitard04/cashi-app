@@ -14,24 +14,28 @@ import {
 import { colors } from "@/constants/theme";
 import { useAuth } from "@/hooks/useAuth";
 
-export default function LoginScreen() {
-  const { login } = useAuth();
+export default function RegisterScreen() {
+  const { register } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const handleLogin = async () => {
+  const handleRegister = async () => {
     if (!email.trim() || !password) {
       setError("Email y contraseña son obligatorios");
+      return;
+    }
+    if (password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres");
       return;
     }
     setError("");
     setSubmitting(true);
     try {
-      await login(email.trim().toLowerCase(), password);
+      await register(email.trim().toLowerCase(), password);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al iniciar sesión");
+      setError(e instanceof Error ? e.message : "Error al registrarte");
     } finally {
       setSubmitting(false);
     }
@@ -48,8 +52,10 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.card}>
-          <Text style={styles.title}>Cashi</Text>
-          <Text style={styles.subtitle}>Inicia sesión para continuar</Text>
+          <Text style={styles.title}>Crear cuenta</Text>
+          <Text style={styles.subtitle}>
+            Registrate para empezar a usar Cashi
+          </Text>
 
           <TextInput
             placeholder="Email"
@@ -63,7 +69,7 @@ export default function LoginScreen() {
           />
 
           <TextInput
-            placeholder="Contraseña"
+            placeholder="Contraseña (mín. 6 caracteres)"
             placeholderTextColor={colors.muted}
             value={password}
             onChangeText={setPassword}
@@ -73,22 +79,22 @@ export default function LoginScreen() {
 
           <TouchableOpacity
             style={[styles.button, submitting && styles.buttonDisabled]}
-            onPress={handleLogin}
+            onPress={handleRegister}
             disabled={submitting}
             activeOpacity={0.8}
           >
             <Text style={styles.buttonText}>
-              {submitting ? "Ingresando..." : "Ingresar"}
+              {submitting ? "Creando cuenta..." : "Crear cuenta"}
             </Text>
           </TouchableOpacity>
 
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
           <View style={styles.bottomRow}>
-            <Text style={styles.muted}>¿No tienes cuenta?</Text>
-            <Link href="/register" asChild>
+            <Text style={styles.muted}>¿Ya tienes cuenta?</Text>
+            <Link href="/" asChild>
               <TouchableOpacity>
-                <Text style={styles.link}>Crear cuenta</Text>
+                <Text style={styles.link}>Iniciar sesión</Text>
               </TouchableOpacity>
             </Link>
           </View>
@@ -109,9 +115,9 @@ const styles = StyleSheet.create({
   },
   card: { width: "100%", alignItems: "center" },
   title: {
-    fontSize: 36,
+    fontSize: 28,
     fontWeight: "bold",
-    color: colors.tint,
+    color: colors.text,
     marginBottom: 8,
   },
   subtitle: { fontSize: 14, color: colors.muted, marginBottom: 24 },
