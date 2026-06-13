@@ -1,23 +1,73 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { useAuth } from "@/hooks/useAuth";
-import { apiService } from "@/services/api";
+import { API_BASE_URL, apiService } from "@/services/api";
 import type {
   CreateTransactionInput,
   Transaction,
+  TransactionType,
   UpdateTransactionInput,
 } from "@/types/transaction";
 
-interface UploadResponse {
-  imageUrl: string;
+interface ServerTransaction {
+  id: number;
+  amount: number;
+  type: TransactionType;
+  description: string;
+  date: string;
+  categoryId: number;
+  receiptUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
 }
+
+interface UploadResponse {
+  url: string;
+}
+
+const absoluteUrl = (relativeOrAbsolute: string): string =>
+  relativeOrAbsolute.startsWith("http")
+    ? relativeOrAbsolute
+    : `${API_BASE_URL}${relativeOrAbsolute}`;
+
+const toClient = (t: ServerTransaction): Transaction => ({
+  id: t.id,
+  amount: t.amount,
+  type: t.type,
+  description: t.description,
+  date: t.date,
+  categoryId: t.categoryId,
+  photoUri: t.receiptUrl ? absoluteUrl(t.receiptUrl) : undefined,
+  location:
+    t.latitude !== null && t.longitude !== null
+      ? { latitude: t.latitude, longitude: t.longitude }
+      : undefined,
+});
+
+const toServer = (
+  input: CreateTransactionInput | UpdateTransactionInput,
+  includeDate: boolean
+): object => {
+  const body: Record<string, unknown> = {};
+  if (input.amount !== undefined) body.amount = input.amount;
+  if (input.type !== undefined) body.type = input.type;
+  if (input.description !== undefined) body.description = input.description;
+  if (input.categoryId !== undefined) body.categoryId = input.categoryId;
+  if (input.photoUri !== undefined) body.receiptUrl = input.photoUri;
+  if (input.location !== undefined) {
+    body.latitude = input.location.latitude;
+    body.longitude = input.location.longitude;
+  }
+  if (includeDate) body.date = new Date().toISOString();
+  return body;
+};
 
 const uploadPhoto = async (
   photoUri: string,
   token: string
 ): Promise<string> => {
   const formData = new FormData();
-  formData.append("file", {
+  formData.append("receipt", {
     uri: photoUri,
     name: "photo.jpg",
     type: "image/jpeg",
@@ -28,7 +78,7 @@ const uploadPhoto = async (
     formData,
     token
   );
-  return res.imageUrl;
+  return absoluteUrl(res.url);
 };
 
 const resolvePhoto = async (
@@ -55,11 +105,11 @@ export const useTransactions = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await apiService.get<Transaction[]>(
+      const data = await apiService.get<ServerTransaction[]>(
         "/transactions",
         token
       );
-      setTransactions(data);
+      setTransactions(data.map(toClient));
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Error al cargar transacciones"
@@ -76,13 +126,13 @@ export const useTransactions = () => {
   const crear = async (input: CreateTransactionInput): Promise<void> => {
     if (!token) throw new Error("Sin sesión activa");
     const photoUri = await resolvePhoto(input.photoUri, token);
-    const body = { ...input, photoUri };
-    const created = await apiService.post<Transaction>(
+    const body = toServer({ ...input, photoUri }, true);
+    const created = await apiService.post<ServerTransaction>(
       "/transactions",
       body,
       token
     );
-    setTransactions((prev) => [...prev, created]);
+    setTransactions((prev) => [...prev, toClient(created)]);
   };
 
   const editar = async (
@@ -91,13 +141,15 @@ export const useTransactions = () => {
   ): Promise<void> => {
     if (!token) throw new Error("Sin sesión activa");
     const photoUri = await resolvePhoto(input.photoUri, token);
-    const body = { ...input, photoUri };
-    const updated = await apiService.patch<Transaction>(
+    const body = toServer({ ...input, photoUri }, false);
+    const updated = await apiService.patch<ServerTransaction>(
       `/transactions/${id}`,
       body,
       token
     );
-    setTransactions((prev) => prev.map((t) => (t.id === id ? updated : t)));
+    setTransactions((prev) =>
+      prev.map((t) => (t.id === id ? toClient(updated) : t))
+    );
   };
 
   const eliminar = async (id: number): Promise<void> => {

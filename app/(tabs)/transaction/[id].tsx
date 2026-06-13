@@ -54,11 +54,14 @@ export default function TransactionFormScreen() {
   const imagePicker = useImagePicker();
   const locationHook = useLocation();
 
+  const { setImage } = imagePicker;
+  const { setLocation } = locationHook;
+
   useFocusEffect(
     useCallback(() => {
-      imagePicker.setImage(transaccion?.photoUri ?? null);
-      locationHook.setLocation(transaccion?.location ?? null);
-    }, [imagePicker, transaccion?.photoUri, transaccion?.location, locationHook])
+      setImage(transaccion?.photoUri ?? null);
+      setLocation(transaccion?.location ?? null);
+    }, [setImage, setLocation, transaccion?.photoUri, transaccion?.location])
   );
 
   const form = useTransactionForm({

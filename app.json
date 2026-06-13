@@ -38,6 +38,19 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Cashi necesita acceso a tus fotos para adjuntar el comprobante",
+          "cameraPermission": "Cashi necesita acceso a la cámara para tomar el comprobante"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Cashi usa tu ubicación para registrar dónde se hizo la transacción"
+        }
       ]
     ],
     "experiments": {
