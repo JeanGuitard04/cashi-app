@@ -43,8 +43,12 @@ export const AuthProvider = ({ children }: Props) => {
   };
 
   const register = async (email: string, password: string) => {
-    await apiService.post("/auth/register", { email, password });
-    await login(email, password);
+    const res = await apiService.post<LoginResponse>("/auth/register", {
+      email,
+      password,
+    });
+    await SecureStore.setItemAsync(TOKEN_KEY, res.token);
+    setToken(res.token);
   };
 
   const logout = async () => {

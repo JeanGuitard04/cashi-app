@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://cashi-api.antakarana.ai";
+const API_BASE_URL = "https://cashi-api.antakarana.ai";
 
 type JsonBody = object;
 
