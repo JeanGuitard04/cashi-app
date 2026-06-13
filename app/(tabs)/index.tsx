@@ -82,7 +82,7 @@ export default function TransactionsListScreen() {
 
       <FlatList
         data={transactions}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => {
           const isIncome = item.type === "income";
           const sign = isIncome ? "+" : "-";

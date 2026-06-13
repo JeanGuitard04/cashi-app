@@ -15,7 +15,7 @@ export interface TransactionFormDefaults {
   amount: string;
   type: TransactionType;
   description: string;
-  categoryId: string;
+  categoryId: number;
 }
 
 interface Props {
@@ -38,23 +38,18 @@ export const useTransactionForm = ({
   const [description, setDescription] = useState(
     defaultValues?.description ?? ""
   );
-  const [categoryId, setCategoryId] = useState(
-    defaultValues?.categoryId ?? ""
+  const [categoryId, setCategoryId] = useState<number>(
+    defaultValues?.categoryId ?? 0
   );
   const [errores, setErrores] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
-  // Sincroniza el form con los defaultValues (o vacíos) cada vez que la
-  // pantalla recibe foco. Mismo motivo que en useCategoryForm:
-  // native-stack puede reusar la instancia del componente al re-pushear,
-  // dejando state stale. Reseteamos también `errores` para que no
-  // queden mensajes rojos viejos.
   useFocusEffect(
     useCallback(() => {
       setAmount(defaultValues?.amount ?? "");
       setType(defaultValues?.type ?? "expense");
       setDescription(defaultValues?.description ?? "");
-      setCategoryId(defaultValues?.categoryId ?? "");
+      setCategoryId(defaultValues?.categoryId ?? 0);
       setErrores({});
     }, [defaultValues])
   );
@@ -69,7 +64,7 @@ export const useTransactionForm = ({
       amount: Number.isNaN(parsedAmount) ? undefined : parsedAmount,
       type,
       description,
-      categoryId,
+      categoryId: categoryId > 0 ? categoryId : undefined,
     });
 
     if (!result.success) {

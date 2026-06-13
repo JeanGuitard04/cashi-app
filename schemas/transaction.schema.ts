@@ -16,7 +16,10 @@ export const createTransactionSchema = z.object({
     .string()
     .min(1, "La descripción no puede estar vacía")
     .max(120, "Máximo 120 caracteres"),
-  categoryId: z.string().min(1, "Selecciona una categoría"),
+  categoryId: z
+    .number({ message: "Selecciona una categoría" })
+    .int()
+    .positive("Selecciona una categoría"),
   photoUri: z.string().optional(),
   location: locationSchema.optional(),
 });
@@ -25,7 +28,7 @@ export const updateTransactionSchema = z.object({
   amount: z.number().positive().optional(),
   type: z.enum(["income", "expense"]).optional(),
   description: z.string().min(1).max(120).optional(),
-  categoryId: z.string().min(1).optional(),
+  categoryId: z.number().int().positive().optional(),
   photoUri: z.string().optional(),
   location: locationSchema.optional(),
 });

@@ -38,7 +38,7 @@ export default function TransactionFormScreen() {
 
   const transaccion = isCreate
     ? undefined
-    : transactions.find((t) => t.id === id);
+    : transactions.find((t) => t.id === Number(id));
 
   const defaultValues = useMemo(() => {
     return transaccion
@@ -76,13 +76,13 @@ export default function TransactionFormScreen() {
             amount: number;
             type: "income" | "expense";
             description: string;
-            categoryId: string;
+            categoryId: number;
             photoUri?: string;
             location?: { latitude: number; longitude: number };
           }
         );
       } else {
-        await editar(id!, enriched);
+        await editar(Number(id), enriched);
       }
       router.replace("/(tabs)");
     },
@@ -138,7 +138,7 @@ export default function TransactionFormScreen() {
   const handleEliminar = () => {
     if (!transaccion) return;
     const ejecutar = async () => {
-      await eliminar(id!);
+      await eliminar(Number(id));
       router.replace("/(tabs)");
     };
 

@@ -38,7 +38,7 @@ export const useTransactions = () => {
 
   const crear = async (input: CreateTransactionInput): Promise<void> => {
     const nueva: Transaction = {
-      id: Date.now().toString(),
+      id: Date.now(),
       date: new Date().toISOString(),
       ...input,
     };
@@ -46,7 +46,7 @@ export const useTransactions = () => {
   };
 
   const editar = async (
-    id: string,
+    id: number,
     input: UpdateTransactionInput
   ): Promise<void> => {
     const next = transactions.map((t) =>
@@ -55,7 +55,7 @@ export const useTransactions = () => {
     await persistir(next);
   };
 
-  const eliminar = async (id: string): Promise<void> => {
+  const eliminar = async (id: number): Promise<void> => {
     await persistir(transactions.filter((t) => t.id !== id));
   };
 
